@@ -5,14 +5,11 @@ Test script
 Only on the test network.
 '''
 import argparse
-import sys
-sys.path.append('../src')
+from decimal import Decimal
 
 import bitcoinrpc
-from bitcoinrpc.exceptions import BitcoinException, InsufficientFunds
-
-
-from decimal import Decimal
+from bitcoinrpc.config import read_config_file, read_default_config
+from bitcoinrpc.exceptions import InsufficientFunds
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--config', help="Specify configuration file")
@@ -22,13 +19,12 @@ parser.add_argument('--noremote', help="Don't use connect_to_remote",
                     action='store_true')
 args = parser.parse_args()
 
+
 if __name__ == "__main__":
 
     if args.config:
-        from bitcoinrpc.config import read_config_file
         cfg = read_config_file(args.config)
     else:
-        from bitcoinrpc.config import read_default_config
         cfg = read_default_config(None)
     port = int(cfg.get('rpcport', '18332' if cfg.get('testnet') else '8332'))
     rpcuser = cfg.get('rpcuser', '')
@@ -94,9 +90,9 @@ if __name__ == "__main__":
             pass
 
     info = conn.getinfo()
-    print "Blocks: %i" % info.blocks
-    print "Connections: %i" % info.connections
-    print "Difficulty: %f" % info.difficulty
+    print("Blocks: %i" % info.blocks)
+    print("Connections: %i" % info.connections)
+    print("Difficulty: %f" % info.difficulty)
 
     m_info = conn.getmininginfo()
     print ("Pooled Transactions: {pooledtx}\n"

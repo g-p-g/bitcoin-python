@@ -20,6 +20,8 @@
 """
 Utilities for reading bitcoin configuration files.
 """
+import os
+import platform
 
 
 def read_config_file(filename):
@@ -53,8 +55,6 @@ def read_default_config(filename=None):
     - `filename`: Path to a configuration file in a non-standard location (optional)
     """
     if filename is None:
-        import os
-        import platform
         home = os.getenv("HOME")
         if not home:
             raise IOError("Home directory not defined, don't know where to look for config file")
@@ -66,7 +66,6 @@ def read_default_config(filename=None):
         filename = os.path.join(home, location)
 
     elif filename.startswith("~"):
-        import os
         filename = os.path.expanduser(filename)
 
     try:
