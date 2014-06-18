@@ -11,7 +11,7 @@ Release process
     - git tag -a vX.X
     - git push origin vX.X
 
-- Run make in doc/
+- Run make html in sphinx/
 
 - Update documentation on github
 
@@ -21,7 +21,7 @@ Release process
     - cp -r sphinx/build/html/* doc/
     - git add doc
     - git commit -a
-    - git push origin gh-pages:gh-pages 
+    - git push origin gh-pages:gh-pages
 
 - Upload to pypi
 
