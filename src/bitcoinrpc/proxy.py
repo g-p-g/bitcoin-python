@@ -19,18 +19,21 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 """
 
-try:
-    import http.client as httplib
-except ImportError:
-    import httplib
 import base64
 import json
 import decimal
+from collections import defaultdict, deque
 try:
+    # Python 3
+    import http.client as httplib
+    from urllib.request import urlopen, Request
+    from urllib.error import HTTPError, URLError
     import urllib.parse as urlparse
 except ImportError:
+    import httplib
+    from urllib2 import urlopen, Request, HTTPError, URLError
     import urlparse
-from collections import defaultdict, deque
+
 from bitcoinrpc.exceptions import TransportException
 
 USER_AGENT = "AuthServiceProxy/0.1"
@@ -56,32 +59,36 @@ class HTTPTransport(object):
                               self.parsed_url.password)
         authpair = authpair.encode('utf8')
         self.auth_header = "Basic ".encode('utf8') + base64.b64encode(authpair)
-        if self.parsed_url.scheme == 'https':
-            self.connection = httplib.HTTPSConnection(self.parsed_url.hostname,
-                                                      port, None, None, False,
-                                                      HTTP_TIMEOUT)
-        else:
-            self.connection = httplib.HTTPConnection(self.parsed_url.hostname,
-                                                     port, False, HTTP_TIMEOUT)
+
+        self.uri = '%s://%s:%d' % (self.parsed_url.scheme,
+                                   self.parsed_url.hostname,
+                                   self.parsed_url.port)
 
     def request(self, serialized_data):
-        self.connection.request('POST', self.parsed_url.path, serialized_data,
-                                {'Host': self.parsed_url.hostname,
-                                 'User-Agent': USER_AGENT,
-                                 'Authorization': self.auth_header,
-                                 'Content-type': 'application/json'})
+        resp = None
+        httpresp = False
 
-        httpresp = self.connection.getresponse()
+        request = Request(self.uri)
+        request.add_header('Authorization', self.auth_header)
+        try:
+            httpresp = urlopen(request, serialized_data, timeout=HTTP_TIMEOUT)
+        except HTTPError, err:
+            resp = err.read()
+        except URLError, err:
+            raise TransportException(err.reason, code=err.errno,
+                                     protocol=self.parsed_url.scheme)
+
         if httpresp is None:
-            self._raise_exception({
-                'code': -342, 'message': 'missing HTTP response from server'})
-        elif httpresp.status == httplib.FORBIDDEN:
+            raise TransportException('missing HTTP response from the server',
+                                     code=-342, protocol=self.parsed_url.scheme)
+        elif httpresp and httpresp.code == httplib.FORBIDDEN:
             msg = "bitcoind returns 403 Forbidden. Is your IP allowed?"
             raise TransportException(msg, code=403,
                                      protocol=self.parsed_url.scheme,
                                      raw_detail=httpresp)
 
-        resp = httpresp.read()
+        if resp is None:
+            resp = httpresp.read()
         return resp.decode('utf8')
 
 
